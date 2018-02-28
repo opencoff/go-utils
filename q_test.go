@@ -1,5 +1,5 @@
 // queue test
-package util
+package utils
 
 import (
 	"runtime"

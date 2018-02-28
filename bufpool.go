@@ -11,7 +11,7 @@
 // warranty; it is provided "as is". No claim  is made to its
 // suitability for any purpose.
 
-package util
+package utils
 
 // A fixed-size buffer-pool backed by a channel and hence, callers
 // are blocked if there are no more buffers available.

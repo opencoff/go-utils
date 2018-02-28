@@ -5,7 +5,7 @@
 // License: Public Domain
 //
 
-package util
+package utils
 
 import (
 	"crypto/rand"
