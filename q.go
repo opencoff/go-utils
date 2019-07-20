@@ -116,15 +116,9 @@ func (w *Q) Size() int {
 }
 
 // Dump queue in human readable form
-func (w *Q) String() string {
+func (w Q) String() string {
 	w.l.Lock()
 	defer w.l.Unlock()
-	return w.repr()
-}
-
-// internal func to print string repr of queue
-// caller must hold lock
-func (w *Q) repr() string {
 	s := fmt.Sprintf("<Q cap=%d, siz=%d wr=%d rd=%d>",
 		w.mask+1, w.size(), w.wr, w.rd)
 
