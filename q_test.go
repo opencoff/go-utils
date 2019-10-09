@@ -56,7 +56,6 @@ func TestBasic(t *testing.T) {
 
 	// Pull items off the queue
 
-
 	z, v := q.Deq()
 	assert(v, "deq-0 failed")
 	x, ok := z.(int)

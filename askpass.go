@@ -51,4 +51,5 @@ func Askpass(prompt string, verify bool) (string, error) {
 
 	return "", fmt.Errorf("Too many tries getting password")
 }
+
 // vim: ft=go:sw=8:ts=8:noexpandtab:tw=98:
