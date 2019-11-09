@@ -28,25 +28,29 @@ func Abbrev(words []string) map[string]string {
 	table := make(map[string]string)
 
 	for _, w := range words {
-		table[w] = w
 		for n := len(w) - 1; n > 0; n -= 1 {
 			ab := w[:n]
-			if _, ok := seen[ab]; ok {
-				seen[ab] += 1
-			} else {
-				seen[ab] = 0
-			}
+			seen[ab] += 1
 
-			z := seen[ab]
-			if z == 0 {
+			switch seen[ab] {
+			case 1:
 				table[ab] = w
-			} else if z == 1 {
+			case 2:
 				delete(table, ab)
-			} else {
-				break
+			default:
+				goto next
 			}
 		}
+		next:
 	}
 
+	// non abbreviations always get entered
+	// This has to be done _after_ the loop above; because
+	// if there are words that are prefixes of other words in
+	// the argument list, we need to ensure we capture them
+	// intact.
+	for _, w := range words {
+		table[w] = w
+	}
 	return table
 }
