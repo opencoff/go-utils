@@ -41,7 +41,7 @@ func MmapReader(fd *os.File, off, sz int64, wr io.Writer) (int64, error) {
 
 	st, err := fd.Stat()
 	if err != nil {
-		return 0, fmt.Errorf("mmap: can't stat: %s", err)
+		return 0, fmt.Errorf("%s: mmap: can't stat: %s", fd.Name(), err)
 	}
 
 	fsz = st.Size()
@@ -51,7 +51,7 @@ func MmapReader(fd *os.File, off, sz int64, wr io.Writer) (int64, error) {
 	}
 
 	if off > fsz {
-		return 0, fmt.Errorf("can't mmap offset %v outside filesize %v", off, fsz)
+		return 0, fmt.Errorf("%s: can't mmap offset %v outside filesize %v", fd.Name(), off, fsz)
 	}
 
 	// Don't mmap outside the available size
@@ -71,7 +71,7 @@ func MmapReader(fd *os.File, off, sz int64, wr io.Writer) (int64, error) {
 
 		mem, err := syscall.Mmap(int(fd.Fd()), off, n, syscall.PROT_READ, syscall.MAP_SHARED)
 		if err != nil {
-			return 0, fmt.Errorf("can't mmap %v bytes at %v: %s", n, off, err)
+			return 0, fmt.Errorf("%s: can't mmap %v bytes at %v: %s", fd.Name(), n, off, err)
 		}
 
 		wr.Write(mem)
