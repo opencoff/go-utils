@@ -9,18 +9,18 @@ func TestSimple(t *testing.T) {
 
 	words := []string{"hello", "help", "sync", "uint", "uint16", "uint64"}
 	ret := map[string]string{
-		"hello": "hello",
-		"hell":  "hello",
-		"help":  "help",
-		"sync":  "sync",
-		"syn":   "sync",
-		"sy":    "sync",
-		"s":     "sync",
-		"uint":  "uint",
-		"uint16":  "uint16",
+		"hello":  "hello",
+		"hell":   "hello",
+		"help":   "help",
+		"sync":   "sync",
+		"syn":    "sync",
+		"sy":     "sync",
+		"s":      "sync",
+		"uint":   "uint",
+		"uint16": "uint16",
 		"uint1":  "uint16",
 		"uint64": "uint64",
-		"uint6": "uint64",
+		"uint6":  "uint64",
 	}
 
 	ab := Abbrev(words)

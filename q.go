@@ -18,11 +18,11 @@ import (
 // Stores interface{} in each queue slot.
 //
 // Notes:
-//  - read from 'rd', write to 'wr+1'.
-//  - queue size always a power-of-2
-//  - for a queue of capacity N, it will store N-1 usable elements
-//  - queue-empty: rd   == wr
-//  - queue-full:  wr+1 == rd
+//   - read from 'rd', write to 'wr+1'.
+//   - queue size always a power-of-2
+//   - for a queue of capacity N, it will store N-1 usable elements
+//   - queue-empty: rd   == wr
+//   - queue-full:  wr+1 == rd
 type Q struct {
 	q      []interface{}
 	wr, rd uint

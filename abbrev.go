@@ -12,17 +12,18 @@ package utils
 // Given a wordlist in 'words', generate unique abbreviations of it
 // and return as a map[abbrev]word.
 // e.g.,
-//  given a wordlist ["hello", "help", "sync"],
-//  Abbrev() returns:
-//    {
-//       "hello": "hello",
-//       "hell":  "hell"
-//       "help":  "help",
-//       "sync":  "sync",
-//       "syn":   "sync",
-//       "sy":    "sync",
-//       "s":     "sync"
-//    }
+//
+//	given a wordlist ["hello", "help", "sync"],
+//	Abbrev() returns:
+//	  {
+//	     "hello": "hello",
+//	     "hell":  "hell"
+//	     "help":  "help",
+//	     "sync":  "sync",
+//	     "syn":   "sync",
+//	     "sy":    "sync",
+//	     "s":     "sync"
+//	  }
 func Abbrev(words []string) map[string]string {
 	seen := make(map[string]int)
 	table := make(map[string]string)
@@ -41,7 +42,7 @@ func Abbrev(words []string) map[string]string {
 				goto next
 			}
 		}
-		next:
+	next:
 	}
 
 	// non abbreviations always get entered

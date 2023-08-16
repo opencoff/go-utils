@@ -13,9 +13,9 @@
 package utils
 
 import (
-	"strings"
-	"strconv"
 	"fmt"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -61,9 +61,9 @@ func ParseSize(s string) (uint64, error) {
 
 	if m, ok := multmap[suff]; ok {
 		v *= m
-	}  else {
-		return 0, fmt.Errorf("unknown size suffix %s",  suff)
+	} else {
+		return 0, fmt.Errorf("unknown size suffix %s", suff)
 	}
 
-	return  v, nil
+	return v, nil
 }

@@ -1,4 +1,3 @@
-
 package utils
 
 import (
@@ -6,7 +5,7 @@ import (
 )
 
 type sizeTest struct {
-	in string
+	in  string
 	out uint64
 	err bool
 }
@@ -23,7 +22,7 @@ var sizesTests = []sizeTest{
 	{"boo", 0, true},
 }
 
-func TestSize(t  *testing.T) {
+func TestSize(t *testing.T) {
 	assert := newAsserter(t)
 
 	for i, t := range sizesTests {
@@ -36,5 +35,3 @@ func TestSize(t  *testing.T) {
 		}
 	}
 }
-
-

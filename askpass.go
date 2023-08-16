@@ -2,7 +2,7 @@
 //
 // (c) 2016 Sudhi Herle <sudhi@herle.net>
 //
-// Placed in the Public Domain
+// # Placed in the Public Domain
 //
 // This software does not come with any express or implied
 // warranty; it is provided "as is". No claim  is made to its

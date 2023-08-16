@@ -31,8 +31,8 @@ import (
 //
 // This function can be used to efficiently hash very large files:
 //
-//    h := sha256.New()
-//    err := MmapReader(fd, 0, 0, h)
+//	h := sha256.New()
+//	err := MmapReader(fd, 0, 0, h)
 func MmapReader(fd *os.File, off, sz int64, wr io.Writer) (int64, error) {
 	// Mmap'ing large files won't work. We need to do it in 1 or 2G
 	// chunks.

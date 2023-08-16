@@ -14,6 +14,8 @@
 package utils
 
 import (
+	"crypto/rand"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
@@ -41,14 +43,18 @@ var _ io.WriteCloser = &SafeFile{}
 // 'nm' is the name of the final file; if 'ovwrite' is true,
 // then the file is overwritten if it exists.
 func NewSafeFile(nm string, ovwrite bool, flag int, perm os.FileMode) (*SafeFile, error) {
-	if _, err := os.Stat(nm); err == nil && !ovwrite {
-		return nil, fmt.Errorf("safefile: won't overwrite existing %s", nm)
+	if st, err := os.Stat(nm); err == nil {
+		if !ovwrite {
+			return nil, fmt.Errorf("safefile: won't overwrite existing %s", nm)
+		}
+
+		if !st.Mode().IsRegular() {
+			return nil, fmt.Errorf("safefile: %s is not a regular file", nm)
+		}
 	}
 
-	// forcibly unlink the old file - so previous artifacts don't exist
-	os.Remove(nm)
-
-	tmp := fmt.Sprintf("%s.tmp.%d.%x", nm, os.Getpid(), randu32())
+	// keep the old file around - we don't want to destroy it if we Abort() this operation.
+	tmp := fmt.Sprintf("%s.tmp.%d.%x", nm, os.Getpid(), randU32())
 	fd, err := os.OpenFile(tmp, flag, perm)
 	if err != nil {
 		return nil, err
@@ -87,13 +93,12 @@ func (sf *SafeFile) Write(b []byte) (int, error) {
 
 // Abort the file write and remove any temporary artifacts
 func (sf *SafeFile) Abort() {
-	// if we've successfully closed, nothing to do!
 	if sf.closed {
 		return
 	}
 
-	sf.closed = true
 	sf.File.Close()
+	sf.closed = true
 	os.Remove(sf.Name())
 }
 
@@ -104,9 +109,9 @@ func (sf *SafeFile) Close() error {
 		sf.Abort()
 		return sf.err
 	}
-
-	// mark this file as closed!
-	sf.closed = true
+	if sf.closed {
+		return sf.err
+	}
 
 	if sf.err = sf.Sync(); sf.err != nil {
 		return sf.err
@@ -116,9 +121,22 @@ func (sf *SafeFile) Close() error {
 		return sf.err
 	}
 
+	// mark this file as closed
+	sf.closed = true
 	if sf.err = os.Rename(sf.Name(), sf.name); sf.err != nil {
 		return sf.err
 	}
 
 	return nil
+}
+
+func randU32() uint32 {
+	var b [4]byte
+
+	_, err := io.ReadFull(rand.Reader, b[:])
+	if err != nil {
+		panic(fmt.Sprintf("can't read 4 rand bytes: %s", err))
+	}
+
+	return binary.LittleEndian.Uint32(b[:])
 }
