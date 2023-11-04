@@ -32,16 +32,22 @@ type Q[T any] struct {
 	q []T
 }
 
-// return next power of 2
-// return n if already a power of 2
-func nextpow2(n uint) uint {
-	n -= 1
+// return strictly _next_ power of 2
+func nextpow2(z uint) uint {
+	if z == 0 {
+		return 2
+	}
+
+	n := z - 1
 	n |= n >> 1
 	n |= n >> 2
 	n |= n >> 4
 	n |= n >> 8
 	n |= n >> 16
-	return n + 1
+	if n += 1; n == z {
+		n <<= 1
+	}
+	return n
 }
 
 // Make a new Queue instance to hold (at least) 'n' slots. If 'n' is
@@ -55,6 +61,24 @@ func NewQ[T any](n int) *Q[T] {
 		mask: z - 1,
 		q:    make([]T, z),
 	}
+	return w
+}
+
+// NewQFrom makes a new queue with contents from the initial list
+func NewQFrom[T any](v []T) *Q[T] {
+	n := uint(len(v))
+	z := nextpow2(n)
+	w := &Q[T]{
+		rd:   0,
+		wr:   n,
+		mask: z - 1,
+		q:    make([]T, z),
+	}
+
+	for i, a := range v {
+		w.q[i+1] = a
+	}
+
 	return w
 }
 
@@ -86,16 +110,15 @@ func (w *Q[T]) Deq() (T, bool) {
 	w.Lock()
 	defer w.Unlock()
 
-	var z T
 	rd := w.rd
 	if rd == w.wr {
+		var z T
 		return z, false
 	}
 
 	rd = (rd + 1) & w.mask
 	w.rd = rd
-	item := w.q[rd]
-	return item, true
+	return w.q[rd], true
 }
 
 // Return true if queue is empty
@@ -113,7 +136,7 @@ func (w *Q[T]) IsFull() bool {
 }
 
 // Return number of valid/usable elements
-func (w *Q[T]) Size() int {
+func (w *Q[T]) Len() int {
 	w.Lock()
 	defer w.Unlock()
 

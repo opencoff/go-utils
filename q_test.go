@@ -11,7 +11,7 @@ func TestBasic(t *testing.T) {
 
 	var v bool
 
-	q := NewQ[int](4)
+	q := NewQ[int](3)
 
 	assert(q.IsEmpty(), "expected q to be empty")
 	assert(!q.IsFull(), "expected q to not be full")
@@ -27,7 +27,7 @@ func TestBasic(t *testing.T) {
 
 	assert(q.IsFull(), "expected q to be full")
 	assert(!q.IsEmpty(), "expected q to not be empty")
-	assert(q.Size() == 3, "qsize exp 3, saw %d", q.Size())
+	assert(q.Len() == 3, "qsize exp 3, saw %d", q.Len())
 
 	// Now q will be full
 	v = q.Enq(40)
@@ -59,7 +59,7 @@ func TestWrapAround(t *testing.T) {
 
 	var v bool
 
-	q := NewQ[int](4)
+	q := NewQ[int](3)
 
 	v = q.Enq(10)
 	assert(v, "enq-10 failed")
@@ -72,7 +72,7 @@ func TestWrapAround(t *testing.T) {
 
 	assert(q.IsFull(), "expected q to be full")
 	assert(!q.IsEmpty(), "expected q to not be empty")
-	assert(q.Size() == 3, "qsize exp 3, saw %d", q.Size())
+	assert(q.Len() == 3, "qsize exp 3, saw %d", q.Len())
 
 	z, v := q.Deq()
 	assert(v, "deq-0 failed")
@@ -88,5 +88,28 @@ func TestWrapAround(t *testing.T) {
 	v = q.Enq(50)
 	assert(v, "enq-50 failed")
 
-	assert(q.Size() == 3, "q size mismatch, exp 3, saw %d", q.Size())
+	assert(q.Len() == 3, "q size mismatch, exp 3, saw %d", q.Len())
+}
+
+// Test wrap around
+func TestWithInitialData(t *testing.T) {
+	assert := newAsserter(t)
+
+	var z = [...]int{
+		33,
+		44,
+		55,
+	}
+
+	q := NewQFrom[int](z[:])
+
+	assert(q.Len() == len(z), "initial q-size: exp %d, saw %d", len(z), q.Len())
+	assert(q.IsFull(), "expected q to be full")
+
+	for i, v := range z {
+		a, ok := q.Deq()
+		assert(ok, "deq-%d failed; exp success", i)
+		assert(a == v, "deq-%d: exp %d, saw %d", i, v, a)
+	}
+	assert(q.IsEmpty(), "expected q to be empty")
 }
