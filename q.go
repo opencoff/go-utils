@@ -23,12 +23,13 @@ import (
 //   - for a queue of capacity N, it will store N-1 usable elements
 //   - queue-empty: rd   == wr
 //   - queue-full:  wr+1 == rd
-type Q struct {
-	q      []interface{}
+type Q[T any] struct {
+	sync.Mutex
+
 	wr, rd uint
 	mask   uint // size-1 (when size is a power-of-2
 
-	l sync.Mutex
+	q []T
 }
 
 // return next power of 2
@@ -46,26 +47,29 @@ func nextpow2(n uint) uint {
 // Make a new Queue instance to hold (at least) 'n' slots. If 'n' is
 // NOT a power-of-2, this function will pick the next closest
 // power-of-2.
-func NewQ(n int) *Q {
-	w := &Q{}
-	w.mask = nextpow2(uint(n)) - 1
-	w.q = make([]interface{}, w.mask+1)
-	w.wr = 0
-	w.rd = 0
-
+func NewQ[T any](n int) *Q[T] {
+	z := nextpow2(uint(n))
+	w := &Q[T]{
+		rd:   0,
+		wr:   0,
+		mask: z - 1,
+		q:    make([]T, z),
+	}
 	return w
 }
 
 // Empty the queue
-func (w *Q) Flush() {
+func (w *Q[T]) Flush() {
+	w.Lock()
 	w.wr = 0
 	w.rd = 0
+	w.Unlock()
 }
 
 // Insert new element; return false if queue full
-func (w *Q) Enq(x interface{}) bool {
-	w.l.Lock()
-	defer w.l.Unlock()
+func (w *Q[T]) Enq(x T) bool {
+	w.Lock()
+	defer w.Unlock()
 
 	wr := (1 + w.wr) & w.mask
 	if wr == w.rd {
@@ -78,56 +82,57 @@ func (w *Q) Enq(x interface{}) bool {
 }
 
 // Remove oldest element; return false if queue empty
-func (w *Q) Deq() (interface{}, bool) {
-	w.l.Lock()
-	defer w.l.Unlock()
+func (w *Q[T]) Deq() (T, bool) {
+	w.Lock()
+	defer w.Unlock()
+
+	var z T
 	rd := w.rd
 	if rd == w.wr {
-		return nil, false
+		return z, false
 	}
 
 	rd = (rd + 1) & w.mask
 	w.rd = rd
 	item := w.q[rd]
-	w.q[rd] = nil // needed to ensure GC picks up items
 	return item, true
 }
 
 // Return true if queue is empty
-func (w *Q) IsEmpty() bool {
-	w.l.Lock()
-	defer w.l.Unlock()
+func (w *Q[T]) IsEmpty() bool {
+	w.Lock()
+	defer w.Unlock()
 	return w.rd == w.wr
 }
 
 // Return true if queue is full
-func (w *Q) IsFull() bool {
-	w.l.Lock()
-	defer w.l.Unlock()
+func (w *Q[T]) IsFull() bool {
+	w.Lock()
+	defer w.Unlock()
 	return w.rd == (1+w.wr)&w.mask
 }
 
 // Return number of valid/usable elements
-func (w *Q) Size() int {
-	w.l.Lock()
-	defer w.l.Unlock()
+func (w *Q[T]) Size() int {
+	w.Lock()
+	defer w.Unlock()
 
 	return w.size()
 }
 
 // Dump queue in human readable form
-func (w Q) String() string {
-	w.l.Lock()
-	defer w.l.Unlock()
-	s := fmt.Sprintf("<Q cap=%d, siz=%d wr=%d rd=%d>",
-		w.mask+1, w.size(), w.wr, w.rd)
+func (w *Q[T]) String() string {
+	w.Lock()
+	defer w.Unlock()
+	s := fmt.Sprintf("<Q-%T cap=%d, siz=%d wr=%d rd=%d>",
+		w, w.mask+1, w.size(), w.wr, w.rd)
 
 	return s
 }
 
 // internal func to return queue size
 // caller must hold lock
-func (w *Q) size() int {
+func (w *Q[T]) size() int {
 	if w.wr == w.rd {
 		return 0
 	} else if w.rd < w.wr {
@@ -137,5 +142,4 @@ func (w *Q) size() int {
 	}
 }
 
-// EOF
 // vim: ft=go:sw=8:ts=8:noexpandtab:tw=98:

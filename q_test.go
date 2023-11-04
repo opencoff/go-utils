@@ -2,29 +2,8 @@
 package utils
 
 import (
-	"runtime"
 	"testing"
-
-	"fmt"
 )
-
-// make an assert() function for use in environment 't' and return it
-func newAsserter(t *testing.T) func(cond bool, msg string, args ...interface{}) {
-	return func(cond bool, msg string, args ...interface{}) {
-		if cond {
-			return
-		}
-
-		_, file, line, ok := runtime.Caller(1)
-		if !ok {
-			file = "???"
-			line = 0
-		}
-
-		s := fmt.Sprintf(msg, args...)
-		t.Fatalf("%s: %d: Assertion failed: %s\n", file, line, s)
-	}
-}
 
 // Basic sanity tests
 func TestBasic(t *testing.T) {
@@ -32,7 +11,7 @@ func TestBasic(t *testing.T) {
 
 	var v bool
 
-	q := NewQ(4)
+	q := NewQ[int](4)
 
 	assert(q.IsEmpty(), "expected q to be empty")
 	assert(!q.IsFull(), "expected q to not be full")
@@ -58,21 +37,15 @@ func TestBasic(t *testing.T) {
 
 	z, v := q.Deq()
 	assert(v, "deq-0 failed")
-	x, ok := z.(int)
-	assert(ok, "deq-0 not an int?")
-	assert(x == 10, "deq-0 value mismatch, exp 10, saw %d", x)
+	assert(z == 10, "deq-0 value mismatch, exp 10, saw %d", z)
 
 	z, v = q.Deq()
 	assert(v, "deq-1 failed")
-	x, ok = z.(int)
-	assert(ok, "deq-1 not an int?")
-	assert(x == 20, "deq-1 value mismatch, exp 20, saw %d", x)
+	assert(z == 20, "deq-1 value mismatch, exp 20, saw %d", z)
 
 	z, v = q.Deq()
 	assert(v, "deq-2 failed")
-	x, ok = z.(int)
-	assert(ok, "deq-2 not an int?")
-	assert(x == 30, "deq-2 value mismatch, exp 30, saw %d", x)
+	assert(z == 30, "deq-2 value mismatch, exp 30, saw %d", z)
 
 	assert(q.IsEmpty(), "expected q to be empty")
 
@@ -86,7 +59,7 @@ func TestWrapAround(t *testing.T) {
 
 	var v bool
 
-	q := NewQ(4)
+	q := NewQ[int](4)
 
 	v = q.Enq(10)
 	assert(v, "enq-10 failed")
@@ -103,15 +76,11 @@ func TestWrapAround(t *testing.T) {
 
 	z, v := q.Deq()
 	assert(v, "deq-0 failed")
-	x, ok := z.(int)
-	assert(ok, "deq-0 not an int?")
-	assert(x == 10, "deq-0 value mismatch, exp 10, saw %d", x)
+	assert(z == 10, "deq-0 value mismatch, exp 10, saw %d", z)
 
 	z, v = q.Deq()
 	assert(v, "deq-1 failed")
-	x, ok = z.(int)
-	assert(ok, "deq-1 not an int?")
-	assert(x == 20, "deq-1 value mismatch, exp 20, saw %d", x)
+	assert(z == 20, "deq-1 value mismatch, exp 20, saw %d", z)
 
 	// This will wrap around
 	v = q.Enq(40)
