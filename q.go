@@ -75,10 +75,7 @@ func NewQFrom[T any](v []T) *Q[T] {
 		q:    make([]T, z),
 	}
 
-	for i, a := range v {
-		w.q[i+1] = a
-	}
-
+	copy(w.q[1:], v)
 	return w
 }
 
@@ -132,7 +129,7 @@ func (w *Q[T]) IsEmpty() bool {
 func (w *Q[T]) IsFull() bool {
 	w.Lock()
 	defer w.Unlock()
-	return w.rd == (1+w.wr)&w.mask
+	return w.rd == ((1 + w.wr) & w.mask)
 }
 
 // Return number of valid/usable elements
@@ -143,14 +140,30 @@ func (w *Q[T]) Len() int {
 	return w.size()
 }
 
+// Return total capacity of the queue
+func (w *Q[T]) Size() int {
+	// Due to the q-full and q-empty conditions, we will
+	// always have one unused slot.
+	return len(w.q) - 1
+}
+
 // Dump queue in human readable form
 func (w *Q[T]) String() string {
 	w.Lock()
 	defer w.Unlock()
-	s := fmt.Sprintf("<Q-%T cap=%d, siz=%d wr=%d rd=%d>",
-		w, w.mask+1, w.size(), w.wr, w.rd)
 
-	return s
+	full := w.rd == ((1 + w.wr) & w.mask)
+	empty := w.rd == w.wr
+
+	var p string = ""
+	if full {
+		p = "[FULL] "
+	} else if empty {
+		p = "[EMPTY] "
+	}
+
+	return fmt.Sprintf("<Q %T %scap=%d, size=%d wr=%d rd=%d",
+		w, p, w.mask, w.size(), w.wr, w.rd)
 }
 
 // internal func to return queue size

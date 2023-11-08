@@ -61,6 +61,8 @@ func TestWrapAround(t *testing.T) {
 
 	q := NewQ[int](3)
 
+	assert(q.Size() == 3, "Q size exp 3, saw %d", q.Size())
+
 	v = q.Enq(10)
 	assert(v, "enq-10 failed")
 
