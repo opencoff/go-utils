@@ -14,8 +14,7 @@ import (
 	"sync"
 )
 
-// Thread-safe, fixed-size circular queue.
-// Stores interface{} in each queue slot.
+// Thread-safe, generic fixed-size circular queue.
 //
 // Notes:
 //   - read from 'rd', write to 'wr+1'.
