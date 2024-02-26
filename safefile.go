@@ -38,13 +38,18 @@ type SafeFile struct {
 
 var _ io.WriteCloser = &SafeFile{}
 
+const (
+	OPT_OVERWRITE uint32 = 1 << iota
+	OPT_COW
+)
+
 // NewSafeFile creates a new temporary file that would either be
 // aborted or safely renamed to the correct name.
 // 'nm' is the name of the final file; if 'ovwrite' is true,
 // then the file is overwritten if it exists.
-func NewSafeFile(nm string, ovwrite bool, flag int, perm os.FileMode) (*SafeFile, error) {
+func NewSafeFile(nm string, opts uint32, flag int, perm os.FileMode) (*SafeFile, error) {
 	if st, err := os.Stat(nm); err == nil {
-		if !ovwrite {
+		if (opts & OPT_OVERWRITE) != 0 {
 			return nil, fmt.Errorf("safefile: won't overwrite existing %s", nm)
 		}
 
@@ -58,6 +63,20 @@ func NewSafeFile(nm string, ovwrite bool, flag int, perm os.FileMode) (*SafeFile
 	fd, err := os.OpenFile(tmp, flag, perm)
 	if err != nil {
 		return nil, err
+	}
+
+	// clone old file to the new one
+	if (opts & OPT_COW) != 0 {
+		old, err := os.Open(nm)
+		if err != nil {
+			return nil, fmt.Errorf("safefile: can't open old %s: %w", nm, err)
+		}
+		err = copyFile(fd, old)
+		old.Close()
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	sf := &SafeFile{
@@ -78,17 +97,26 @@ func (sf *SafeFile) Write(b []byte) (int, error) {
 		return 0, fmt.Errorf("safefile: %s is closed", sf.Name())
 	}
 
-	var z, nw int
-	n := len(b)
-	for n > 0 {
-		if nw, sf.err = sf.File.Write(b); sf.err != nil {
-			return z, sf.err
-		}
-		z += nw
-		n -= nw
-		b = b[nw:]
+	n, err := fullWrite(sf.File, b)
+	if err != nil {
+		sf.err = err
 	}
-	return z, nil
+	return n, err
+}
+
+func (sf *SafeFile) WriteAt(b []byte, off int64) (int, error) {
+	if sf.err != nil {
+		return 0, sf.err
+	}
+
+	if sf.closed {
+		return 0, fmt.Errorf("safefile: %s is closed", sf.Name())
+	}
+	n, err := sf.File.WriteAt(b, off)
+	if err != nil {
+		sf.err = err
+	}
+	return n, err
 }
 
 // Abort the file write and remove any temporary artifacts
@@ -128,6 +156,21 @@ func (sf *SafeFile) Close() error {
 	}
 
 	return nil
+}
+
+func fullWrite(d *os.File, b []byte) (int, error) {
+	var z int
+	n := len(b)
+	for n > 0 {
+		m, err := d.Write(b)
+		if err != nil {
+			return z, fmt.Errorf("safefile: can't write %d bytes to %s: %w", len(b), d.Name(), err)
+		}
+		n -= m
+		b = b[m:]
+		z += m
+	}
+	return z, nil
 }
 
 func randU32() uint32 {
