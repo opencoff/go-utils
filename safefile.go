@@ -49,7 +49,7 @@ const (
 // then the file is overwritten if it exists.
 func NewSafeFile(nm string, opts uint32, flag int, perm os.FileMode) (*SafeFile, error) {
 	if st, err := os.Stat(nm); err == nil {
-		if (opts & OPT_OVERWRITE) != 0 {
+		if (opts & OPT_OVERWRITE) == 0 {
 			return nil, fmt.Errorf("safefile: won't overwrite existing %s", nm)
 		}
 
@@ -57,6 +57,9 @@ func NewSafeFile(nm string, opts uint32, flag int, perm os.FileMode) (*SafeFile,
 			return nil, fmt.Errorf("safefile: %s is not a regular file", nm)
 		}
 	}
+
+	// we need these two flags by default. The callers can set the rest..
+	flag |= os.O_CREATE | os.O_TRUNC | os.O_RDWR
 
 	// keep the old file around - we don't want to destroy it if we Abort() this operation.
 	tmp := fmt.Sprintf("%s.tmp.%d.%x", nm, os.Getpid(), randU32())
@@ -69,7 +72,7 @@ func NewSafeFile(nm string, opts uint32, flag int, perm os.FileMode) (*SafeFile,
 	if (opts & OPT_COW) != 0 {
 		old, err := os.Open(nm)
 		if err != nil {
-			return nil, fmt.Errorf("safefile: can't open old %s: %w", nm, err)
+			return nil, fmt.Errorf("safefile: open: %w", err)
 		}
 		err = copyFile(fd, old)
 		old.Close()
@@ -97,11 +100,11 @@ func (sf *SafeFile) Write(b []byte) (int, error) {
 		return 0, fmt.Errorf("safefile: %s is closed", sf.Name())
 	}
 
-	n, err := fullWrite(sf.File, b)
-	if err != nil {
-		sf.err = err
+	var z int
+	if z, sf.err = fullWrite(sf.File, b); sf.err != nil {
+		return z, sf.err
 	}
-	return n, err
+	return z, nil
 }
 
 func (sf *SafeFile) WriteAt(b []byte, off int64) (int, error) {
@@ -164,7 +167,7 @@ func fullWrite(d *os.File, b []byte) (int, error) {
 	for n > 0 {
 		m, err := d.Write(b)
 		if err != nil {
-			return z, fmt.Errorf("safefile: can't write %d bytes to %s: %w", len(b), d.Name(), err)
+			return z, fmt.Errorf("safefile: %w", err)
 		}
 		n -= m
 		b = b[m:]

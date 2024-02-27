@@ -16,11 +16,13 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/opencoff/go-mmap"
 )
 
+// TODO macOS, FreeBSD optimizations
 // Use mmap(2) to copy src to dst.
 func copyFile(dst, src *os.File) error {
 	_, err := mmap.Reader(src, func(b []byte) error {

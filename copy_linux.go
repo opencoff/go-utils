@@ -39,7 +39,7 @@ func copyFile(dst, src *os.File) error {
 
 	st, err := src.Stat()
 	if err != nil {
-		return fmt.Errorf("safefile: can't stat %s: %w", src.Name(), err)
+		return fmt.Errorf("safefile: %w", err)
 	}
 
 	// Fallback to copy_file_range(2)
@@ -52,10 +52,10 @@ func copyFile(dst, src *os.File) error {
 		}
 		m, err := unix.CopyFileRange(s, &roff, d, &woff, n, 0)
 		if err != nil {
-			return fmt.Errorf("safefile: can't copy %s: %w", src.Name(), err)
+			return fmt.Errorf("safefile: copy: %w", err)
 		}
 		if m == 0 {
-			return fmt.Errorf("safefile: zero sized copy of %s: %w", src.Name(), err)
+			return fmt.Errorf("safefile: zero sized copy of %s", src.Name())
 		}
 		sz -= int64(m)
 		roff += int64(m)
@@ -63,7 +63,7 @@ func copyFile(dst, src *os.File) error {
 	}
 	_, err = dst.Seek(0, os.SEEK_SET)
 	if err != nil {
-		return fmt.Errorf("safefile: can't seek to start of %s: %w", dst.Name(), err)
+		return fmt.Errorf("safefile: seek: %w", err)
 	}
 	return nil
 }
