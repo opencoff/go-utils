@@ -59,7 +59,21 @@ func NewSafeFile(nm string, opts uint32, flag int, perm os.FileMode) (*SafeFile,
 	}
 
 	// we need these two flags by default. The callers can set the rest..
-	flag |= os.O_CREATE | os.O_TRUNC | os.O_RDWR
+	flag |= os.O_CREATE | os.O_TRUNC
+
+	// make sure we don't have conflicting flags
+	if (opts & OPT_COW) != 0 {
+		flag &= ^os.O_WRONLY
+		flag |= os.O_RDWR
+	}
+
+	if (flag & os.O_RDONLY) != 0 {
+		return nil, fmt.Errorf("safefile: %s conflicting open mode (O_RDONLY)", nm)
+	}
+
+	if (flag & (os.O_RDWR | os.O_WRONLY)) == 0 {
+		flag |= os.O_RDWR
+	}
 
 	// keep the old file around - we don't want to destroy it if we Abort() this operation.
 	tmp := fmt.Sprintf("%s.tmp.%d.%x", nm, os.Getpid(), randU32())
