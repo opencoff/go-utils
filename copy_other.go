@@ -1,4 +1,4 @@
-// copy_other.go - Linux specific file copy
+// copy_other.go - non-Linux file copy
 //
 // (c) 2021 Sudhi Herle <sudhi@herle.net>
 //

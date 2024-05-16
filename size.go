@@ -60,7 +60,7 @@ func ParseSize(s string) (uint64, error) {
 
 	i := strings.LastIndexAny(s, "BkKMGTPE")
 	if i > 0 {
-		suff = s[i:]
+		suff = s[i : i+1]
 		s = s[:i]
 	}
 

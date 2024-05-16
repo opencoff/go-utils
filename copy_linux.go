@@ -46,10 +46,7 @@ func copyFile(dst, src *os.File) error {
 	var roff, woff int64
 	sz := st.Size()
 	for sz > 0 {
-		var n int = _ioChunkSize
-		if int(sz) < n {
-			n = int(sz)
-		}
+		n := min(_ioChunkSize, int(sz))
 		m, err := unix.CopyFileRange(s, &roff, d, &woff, n, 0)
 		if err != nil {
 			return fmt.Errorf("safefile: copy: %w", err)
