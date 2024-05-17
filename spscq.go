@@ -60,8 +60,7 @@ func (q *SPSCQ[T]) Flush() {
 // Enq enqueues a new element. Returns true on success
 // and false when Q is full.
 func (q *SPSCQ[T]) Enq(x T) bool {
-	old := q.wr.Load()
-	wr := (1 + old) & q.mask
+	wr := (1 + q.wr.Load()) & q.mask
 	if wr == q.rd.Load() {
 		return false
 	}
@@ -80,23 +79,9 @@ func (q *SPSCQ[T]) Deq() (T, bool) {
 	}
 
 	rd = (1 + rd) & q.mask
-	q.rd.Store(rd)
 	z := q.q[rd]
+	q.rd.Store(rd)
 	return z, true
-}
-
-// IsEmpty returns true if the queue is empty
-func (q *SPSCQ[T]) IsEmpty() bool {
-	rd := q.rd.Load()
-	wr := q.wr.Load()
-	return rd == wr
-}
-
-// IsFull returns true if the queue is full
-func (q *SPSCQ[T]) IsFull() bool {
-	rd := q.rd.Load()
-	wr := q.wr.Load()
-	return rd == ((1 + wr) & q.mask)
 }
 
 func qlen(rd, wr, mask uint64) int {
@@ -106,6 +91,28 @@ func qlen(rd, wr, mask uint64) int {
 		return int(wr - rd)
 	}
 	return int((mask + 1) - rd + wr)
+}
+
+func qempty(rd, wr, mask uint64) bool {
+	return rd == wr
+}
+
+func qfull(rd, wr, mask uint64) bool {
+	return rd == ((1 + wr) & mask)
+}
+
+// IsEmpty returns true if the queue is empty
+func (q *SPSCQ[T]) IsEmpty() bool {
+	rd := q.rd.Load()
+	wr := q.wr.Load()
+	return qempty(rd, wr, q.mask)
+}
+
+// IsFull returns true if the queue is full
+func (q *SPSCQ[T]) IsFull() bool {
+	rd := q.rd.Load()
+	wr := q.wr.Load()
+	return qfull(rd, wr, q.mask)
 }
 
 // Len returns the number of elements in the queue
@@ -128,8 +135,8 @@ func (q *SPSCQ[T]) String() string {
 	wr := q.wr.Load()
 	n := qlen(rd, wr, q.mask)
 
-	full := rd == ((1 + wr) & q.mask)
-	empty := rd == wr
+	full := qfull(rd, wr, q.mask)
+	empty := qempty(rd, wr, q.mask)
 
 	var p string = ""
 	if full {
