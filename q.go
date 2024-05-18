@@ -25,131 +25,104 @@ import (
 // power-of-2 size.  For a queue with capacity 'N', it will store
 // N-1 queue elements.
 type Q[T any] struct {
-	wr, rd uint
-	mask   uint // size-1 (when size is a power-of-2
+	wr, rd uint64
+	mask   uint64 // size-1 (qhen size is a power-of-2
 
 	q []T
-}
-
-// return strictly _next_ power of 2
-func nextpow2(z uint) uint {
-	if z == 0 {
-		return 2
-	}
-
-	n := z - 1
-	n |= n >> 1
-	n |= n >> 2
-	n |= n >> 4
-	n |= n >> 8
-	n |= n >> 16
-	if n += 1; n == z {
-		n <<= 1
-	}
-	return n
 }
 
 // Make a new Queue instance to hold (at least) 'n' slots. If 'n' is
 // NOT a power-of-2, this function will pick the next closest
 // power-of-2.
 func NewQ[T any](n int) *Q[T] {
-	w := &Q[T]{}
-	w.init(n)
-	return w
-}
-
-func (w *Q[T]) init(n int) {
-	z := nextpow2(uint(n))
-
-	w.rd, w.wr = 0, 0
-	w.mask = z - 1
-	w.q = make([]T, z)
-}
-
-func (w *Q[T]) init2(v []T) {
-	w.init(len(v))
-	n := copy(w.q[1:], v)
-	w.wr = uint(n)
+	q := &Q[T]{}
+	q.init(n)
+	return q
 }
 
 // NewQFrom makes a new queue with contents from the initial list
 func NewQFrom[T any](v []T) *Q[T] {
-	w := &Q[T]{}
-	w.init2(v)
-	return w
+	q := &Q[T]{}
+	q.init2(v)
+	return q
+}
+
+func (q *Q[T]) init(n int) {
+	z := nextpow2(uint64(n))
+
+	q.rd, q.wr = 0, 0
+	q.mask = z - 1
+	q.q = make([]T, z)
+}
+
+func (q *Q[T]) init2(v []T) {
+	q.init(len(v))
+	n := copy(q.q[1:], v)
+	q.wr = uint64(n)
 }
 
 // Empty the queue
-func (w *Q[T]) Flush() {
-	w.wr = 0
-	w.rd = 0
+func (q *Q[T]) Flush() {
+	q.wr = 0
+	q.rd = 0
 }
 
 // Insert new element; return false if queue full
-func (w *Q[T]) Enq(x T) bool {
-	wr := (1 + w.wr) & w.mask
-	if wr == w.rd {
+func (q *Q[T]) Enq(x T) bool {
+	wr := (1 + q.wr) & q.mask
+	if wr == q.rd {
 		return false
 	}
 
-	w.q[wr] = x
-	w.wr = wr
+	q.q[wr] = x
+	q.wr = wr
 	return true
 }
 
 // Remove oldest element; return false if queue empty
-func (w *Q[T]) Deq() (T, bool) {
-	rd := w.rd
-	if rd == w.wr {
+func (q *Q[T]) Deq() (T, bool) {
+	rd := q.rd
+	if rd == q.wr {
 		var z T
 		return z, false
 	}
 
-	rd = (rd + 1) & w.mask
-	w.rd = rd
-	return w.q[rd], true
+	rd = (rd + 1) & q.mask
+	q.rd = rd
+	return q.q[rd], true
 }
 
 // Return true if queue is empty
-func (w *Q[T]) IsEmpty() bool {
-	return w.rd == w.wr
+func (q *Q[T]) IsEmpty() bool {
+	return qempty(q.rd, q.wr, q.mask)
 }
 
 // Return true if queue is full
-func (w *Q[T]) IsFull() bool {
-	return w.rd == ((1 + w.wr) & w.mask)
+func (q *Q[T]) IsFull() bool {
+	return qfull(q.rd, q.wr, q.mask)
 }
 
 // Return number of valid/usable elements
-func (w *Q[T]) Len() int {
-	return w.size()
+func (q *Q[T]) Len() int {
+	return qlen(q.rd, q.wr, q.mask)
 }
 
 // Return total capacity of the queue
-func (w *Q[T]) Size() int {
+func (q *Q[T]) Size() int {
 	// Due to the q-full and q-empty conditions, we will
 	// always have one unused slot.
-	return len(w.q) - 1
+	return len(q.q) - 1
 }
 
 // Dump queue in human readable form
-func (w *Q[T]) String() string {
-	return w.repr("Q")
+func (q *Q[T]) String() string {
+	return q.repr("Q")
 }
 
-func (w *Q[T]) repr(nm string) string {
-	full := w.rd == ((1 + w.wr) & w.mask)
-	empty := w.rd == w.wr
+func (q *Q[T]) repr(nm string) string {
+	suff := qrepr(q.rd, q.wr, q.mask)
 
-	var p string = ""
-	if full {
-		p = "[FULL] "
-	} else if empty {
-		p = "[EMPTY] "
-	}
-
-	return fmt.Sprintf("<%s %T %scap=%d, size=%d wr=%d rd=%d",
-		nm, w, p, w.mask, w.size(), w.wr, w.rd)
+	return fmt.Sprintf("<%s %T %s>", nm, q, suff)
 }
 
 // SyncQ[T] is a generic, thread-safe, fixed-size queue. This queue
@@ -164,16 +137,16 @@ type SyncQ[T any] struct {
 // If 'n' is NOT a power-of-2, this function will pick the next closest
 // power-of-2.
 func NewSyncQ[T any](n int) *SyncQ[T] {
-	w := &SyncQ[T]{}
-	w.init(n)
-	return w
+	q := &SyncQ[T]{}
+	q.init(n)
+	return q
 }
 
 // NewSyncQFrom makes a new queue with contents from the initial list
 func NewSyncQFrom[T any](v []T) *SyncQ[T] {
-	w := &SyncQ[T]{}
-	w.init2(v)
-	return w
+	q := &SyncQ[T]{}
+	q.init2(v)
+	return q
 }
 
 // Flush empties the queue
@@ -239,17 +212,6 @@ func (q *SyncQ[T]) String() string {
 	s := q.Q.repr("SyncQ")
 	q.Unlock()
 	return s
-}
-
-// internal func to return queue size
-// caller must hold lock
-func (w *Q[T]) size() int {
-	if w.wr == w.rd {
-		return 0
-	} else if w.rd < w.wr {
-		return int(w.wr - w.rd)
-	}
-	return int((w.mask + 1) - w.rd + w.wr)
 }
 
 // vim: ft=go:sw=8:ts=8:noexpandtab:tw=98:

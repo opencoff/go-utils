@@ -84,23 +84,6 @@ func (q *SPSCQ[T]) Deq() (T, bool) {
 	return z, true
 }
 
-func qlen(rd, wr, mask uint64) int {
-	if wr == rd {
-		return 0
-	} else if rd < wr {
-		return int(wr - rd)
-	}
-	return int((mask + 1) - rd + wr)
-}
-
-func qempty(rd, wr, mask uint64) bool {
-	return rd == wr
-}
-
-func qfull(rd, wr, mask uint64) bool {
-	return rd == ((1 + wr) & mask)
-}
-
 // IsEmpty returns true if the queue is empty
 func (q *SPSCQ[T]) IsEmpty() bool {
 	rd := q.rd.Load()
@@ -131,20 +114,7 @@ func (q *SPSCQ[T]) Size() int {
 
 // String returns a human readable description of the queue
 func (q *SPSCQ[T]) String() string {
-	rd := q.rd.Load()
-	wr := q.wr.Load()
-	n := qlen(rd, wr, q.mask)
+	suff := qrepr(q.rd.Load(), q.wr.Load(), q.mask)
 
-	full := qfull(rd, wr, q.mask)
-	empty := qempty(rd, wr, q.mask)
-
-	var p string = ""
-	if full {
-		p = "[FULL] "
-	} else if empty {
-		p = "[EMPTY] "
-	}
-
-	return fmt.Sprintf("<SPSCQ %T %scap=%d, size=%d wr=%d rd=%d",
-		q, p, q.mask, n, wr, rd)
+	return fmt.Sprintf("<SPSCQ %T %s>", q, suff)
 }

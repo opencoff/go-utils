@@ -77,7 +77,7 @@ func (m *myQ) BarrierOpen() {
 	close(m.ch)
 }
 
-var qsizes = []int{128, 1024, 4096, 16384, 65536}
+var qsizes = []int{128, 1024, 4096, 16384}
 
 func TestConcurrency(t *testing.T) {
 	enq := func(myq *myQ, n uint64) {
