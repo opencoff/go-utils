@@ -42,9 +42,9 @@ func NewSPSCQFrom[T any](v []T) *SPSCQ[T] {
 
 func newSPSCQ[T any](n int) *SPSCQ[T] {
 	q := &SPSCQ[T]{}
-	z := nextpow2(uint(n))
+	z := nextpow2(uint64(n))
 
-	q.mask = uint64(z - 1)
+	q.mask = z - 1
 	q.rd.Store(0)
 	q.wr.Store(0)
 	q.q = make([]T, z)

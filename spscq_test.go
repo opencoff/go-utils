@@ -1,4 +1,11 @@
-// queue test
+// spsc queue test
+//
+// (c) 2024 Sudhi Herle <sw-at-herle.net>
+//
+// Placed in the Public Domain
+// This software does not come with any express or implied
+// warranty; it is provided "as is". No claim  is made to its
+// suitability for any purpose.
 package utils
 
 import (
@@ -51,44 +58,34 @@ type myQ struct {
 	// number of times q was full/empty, had seq errs
 	full, empty, errs uint64
 
-	// sync barrier
-	ch chan bool
+	b  *Barrier
 	wg sync.WaitGroup
 }
 
 func newQ(n int) *myQ {
-	spq := NewSPSCQ[uint64](n)
-
 	myq := &myQ{
-		q:  spq,
-		ch: make(chan bool),
+		q: NewSPSCQ[uint64](n),
+		b: NewBarrier(),
 	}
 	return myq
-}
-
-// Barrier wait -- just wait for chan to be closed
-func (m *myQ) BarrierWait() {
-	for _ = range m.ch {
-	}
-}
-
-// lift the barrier by closing the chan
-func (m *myQ) BarrierOpen() {
-	close(m.ch)
 }
 
 var qsizes = []int{128, 1024, 4096, 16384}
 
 func TestConcurrency(t *testing.T) {
 	enq := func(myq *myQ, n uint64) {
-		myq.BarrierWait()
+		myq.b.Wait()
 
 		var v uint64 = 1
 		var full uint64
+		var tot time.Duration
+
 		q := myq.q
-		start := time.Now()
 		for n > 0 {
-			if q.Enq(v) {
+			start := time.Now()
+			ok := q.Enq(v)
+			tot += time.Now().Sub(start)
+			if ok {
 				v++
 			} else {
 				full++
@@ -96,20 +93,23 @@ func TestConcurrency(t *testing.T) {
 			n -= 1
 		}
 
-		myq.prod = time.Now().Sub(start)
+		myq.prod = tot
 		myq.full = full
 		myq.wg.Done()
 	}
 
 	deq := func(myq *myQ, n uint64) {
-		myq.BarrierWait()
+		myq.b.Wait()
 
 		var v uint64 = 1
 		var err, empty uint64
+		var tot time.Duration
+
 		q := myq.q
-		start := time.Now()
 		for n > 0 {
+			start := time.Now()
 			z, ok := q.Deq()
+			tot += time.Now().Sub(start)
 			if ok {
 				if v != z {
 					err++
@@ -121,7 +121,7 @@ func TestConcurrency(t *testing.T) {
 			n -= 1
 		}
 
-		myq.cons = time.Now().Sub(start)
+		myq.cons = tot
 		myq.empty = empty
 		myq.errs = err
 		myq.wg.Done()
@@ -135,7 +135,7 @@ func TestConcurrency(t *testing.T) {
 		go enq(myq, iters)
 		go deq(myq, iters)
 
-		myq.BarrierOpen()
+		myq.b.Broadcast()
 		myq.wg.Wait()
 
 		pc := float64(myq.prod) / float64(iters)

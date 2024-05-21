@@ -1,6 +1,6 @@
 // q.go - Fixed size circular queue
 //
-// (c) 2014 Sudhi Herle <sw-at-herle.net>
+// (c) 2024 Sudhi Herle <sw-at-herle.net>
 //
 // Placed in the Public Domain
 // This software does not come with any express or implied
