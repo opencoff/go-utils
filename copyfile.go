@@ -31,6 +31,8 @@ func CopyFile(src, dst string, perm fs.FileMode) error {
 		return err
 	}
 
+	defer s.Close()
+
 	// never overwrite an existing file.
 	_, err = os.Stat(dst)
 	if err == nil {
@@ -42,6 +44,7 @@ func CopyFile(src, dst string, perm fs.FileMode) error {
 		return nil
 	}
 
+	defer d.Close()
 	return CopyFd(s, d)
 }
 
