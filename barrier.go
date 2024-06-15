@@ -29,7 +29,7 @@ func (b *Barrier) Wait() {
 	if b.closed.Load() {
 		return
 	}
-	for _ = range b.ch {
+	for range b.ch {
 	}
 }
 
