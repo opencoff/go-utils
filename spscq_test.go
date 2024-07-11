@@ -70,7 +70,7 @@ func newQ(n int) *myQ {
 	return myq
 }
 
-var qsizes = []int{128, 1024, 4096, 16384}
+var qsizes = []int{128, 1024, 4096, 8192, 16384}
 
 func TestConcurrency(t *testing.T) {
 	enq := func(myq *myQ, n uint64) {

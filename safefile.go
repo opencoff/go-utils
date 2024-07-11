@@ -85,14 +85,18 @@ func NewSafeFile(nm string, opts uint32, flag int, perm os.FileMode) (*SafeFile,
 	// clone old file to the new one
 	if (opts & OPT_COW) != 0 {
 		old, err := os.Open(nm)
-		if err != nil {
-			return nil, fmt.Errorf("safefile: open: %w", err)
-		}
-		err = copyFile(fd, old)
-		old.Close()
+		switch {
+		case err != nil:
+			if !os.IsNotExist(err) {
+				return nil, fmt.Errorf("safefile: open-cow: %w", err)
+			}
+		case err == nil:
+			err = copyFile(fd, old)
+			old.Close()
 
-		if err != nil {
-			return nil, err
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

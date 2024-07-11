@@ -18,9 +18,10 @@ import (
 // queue. This queue always has a power-of-2 size. For a queue
 // with capacity 'N', it will store N-1 elements.
 type SPSCQ[T any] struct {
-	rd, wr atomic.Uint64
-	mask   uint64
-	q      []T
+	rd   atomic.Uint64
+	wr   atomic.Uint64
+	mask uint64
+	q    []T
 }
 
 // Make a new SPSC-Q to hold at-least 'n' elements. If 'n'

@@ -167,6 +167,60 @@ func TestCow(t *testing.T) {
 	}
 }
 
+func TestCowNoExist(t *testing.T) {
+	assert := newAsserter(t)
+
+	tmpdir := t.TempDir()
+	if len(*testDir) > 0 {
+		tmpdir = filepath.Join(*testDir, t.Name())
+		err := os.MkdirAll(tmpdir, 0750)
+		assert(err == nil, "can't make COW tmpdir %s: %s", tmpdir, err)
+		t.Logf("%s: Using %s as the COW tempdir\n", t.Name(), tmpdir)
+		t.Cleanup(func() {
+			os.RemoveAll(tmpdir)
+		})
+	}
+
+	fn := filepath.Join(tmpdir, "file-1")
+
+	const (
+		_ChunkSize int = 8192
+		_MaxChunks     = 16
+		_FileSize      = _MaxChunks * _ChunkSize
+	)
+
+	buf := make([]byte, _FileSize)
+	randbuf(buf)
+
+	sf, err := NewSafeFile(fn, OPT_OVERWRITE|OPT_COW, 0, 0600)
+	assert(err == nil, "%s: can't create safefile: %s", fn, err)
+	assert(sf != nil, "%s: nil ptr", fn)
+
+	n, err := sf.Write(buf)
+	assert(err == nil, "%s: write error: %s", sf.Name(), err)
+	assert(n == len(buf), "%s: partial write: exp %d, saw %d", sf.Name(), len(buf), n)
+
+	err = sf.Close()
+	assert(err == nil, "%s: close: %s", sf.Name(), err)
+
+	// Only 8 chunks of total have changed. So the rest should be fine.
+	fd, err := os.Open(fn)
+	assert(err == nil, "%s: open %s", fn, err)
+
+	st, err := fd.Stat()
+	assert(err == nil, "%s: stat %s", fn, err)
+	assert(st.Size() == int64(_FileSize), "%s: file size: exp %d, saw %d", fn, _FileSize, st.Size())
+
+	rdbuf := make([]byte, _FileSize)
+
+	n, err = fd.Read(rdbuf)
+	assert(err == nil, "%s: read %s", fn, err)
+	assert(n == _FileSize, "%s: read: exp %d, saw %d", fn, _FileSize, n)
+	assert(1 == subtle.ConstantTimeCompare(buf, rdbuf), "%s: content mismatch", fn)
+
+	fd.Close()
+}
+
 func fileCksum(nm string) ([]byte, error) {
 	fd, err := os.Open(nm)
 	if err != nil {
