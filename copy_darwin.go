@@ -11,12 +11,11 @@
 // warranty; it is provided "as is". No claim  is made to its
 // suitability for any purpose.
 
-//go:build macos
+//go:build darwin
 
 package utils
 
 import (
-	"fmt"
 	"os"
 
 	"golang.org/x/sys/unix"
@@ -32,6 +31,5 @@ func copyFile(dst, src *os.File) error {
 		return nil
 	}
 
-	// XXX do we fallback to mmap?
-	return fmt.Errorf("safefile: %w", err)
+	return copyViaMmap(dst, src)
 }

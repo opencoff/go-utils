@@ -11,30 +11,14 @@
 // warranty; it is provided "as is". No claim  is made to its
 // suitability for any purpose.
 
-//go:build !linux
+//go:build !linux && !darwin
 
 package utils
 
 import (
-	"fmt"
 	"os"
-
-	"github.com/opencoff/go-mmap"
 )
 
-// TODO macOS, FreeBSD optimizations
-// Use mmap(2) to copy src to dst.
 func copyFile(dst, src *os.File) error {
-	_, err := mmap.Reader(src, func(b []byte) error {
-		_, err := fullWrite(dst, b)
-		return err
-	})
-	if err != nil {
-		return fmt.Errorf("safefile: can't read %s: %w", src.Name(), err)
-	}
-	_, err = dst.Seek(0, os.SEEK_SET)
-	if err != nil {
-		return fmt.Errorf("safefile: can't seek to start of %s: %w", dst.Name(), err)
-	}
-	return nil
+	return copyViaMmap(dst, src)
 }
