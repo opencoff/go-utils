@@ -1,11 +1,10 @@
 module github.com/opencoff/go-utils
 
-go 1.21.1
+go 1.22.2
+
+require golang.org/x/crypto v0.30.0
 
 require (
-	github.com/opencoff/go-mmap v0.1.2
-	golang.org/x/crypto v0.17.0
-	golang.org/x/sys v0.16.0
+	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/term v0.27.0 // indirect
 )
-
-require golang.org/x/term v0.15.0 // indirect
