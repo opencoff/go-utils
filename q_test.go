@@ -1,4 +1,5 @@
-// queue test
+// q_test.go - tests for queues
+
 package utils
 
 import (
