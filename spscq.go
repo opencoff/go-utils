@@ -18,8 +18,15 @@ import (
 // queue. This queue always has a power-of-2 size. For a queue
 // with capacity 'N', it will store N-1 elements.
 type SPSCQ[T any] struct {
-	rd   atomic.Uint64
-	wr   atomic.Uint64
+	rd atomic.Uint64
+	wr atomic.Uint64
+
+	rdc uint64    // read-index cached
+	_   [7]uint64 // cache-line pad
+
+	wrc uint64    // write-index cached
+	_   [7]uint64 // cache-line pad
+
 	mask uint64
 	q    []T
 }
@@ -62,8 +69,10 @@ func (q *SPSCQ[T]) Flush() {
 // and false when Q is full.
 func (q *SPSCQ[T]) Enq(x T) bool {
 	wr := (1 + q.wr.Load()) & q.mask
-	if wr == q.rd.Load() {
-		return false
+	if wr == q.rdc {
+		if q.rdc = q.rd.Load(); wr == q.rdc {
+			return false
+		}
 	}
 	q.q[wr] = x
 	q.wr.Store(wr)
@@ -74,9 +83,11 @@ func (q *SPSCQ[T]) Enq(x T) bool {
 // if the queue is empty, true otherwise.
 func (q *SPSCQ[T]) Deq() (T, bool) {
 	rd := q.rd.Load()
-	if rd == q.wr.Load() {
-		var z T
-		return z, false
+	if rd == q.wrc {
+		if q.wrc = q.wr.Load(); rd == q.wrc {
+			var z T
+			return z, false
+		}
 	}
 
 	rd = (1 + rd) & q.mask
