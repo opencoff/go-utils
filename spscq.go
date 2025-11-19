@@ -19,7 +19,10 @@ import (
 // with capacity 'N', it will store N-1 elements.
 type SPSCQ[T any] struct {
 	rd atomic.Uint64
+	_   [7]uint64 // cache-line pad
+
 	wr atomic.Uint64
+	_   [7]uint64 // cache-line pad
 
 	rdc uint64    // read-index cached
 	_   [7]uint64 // cache-line pad
