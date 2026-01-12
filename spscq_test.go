@@ -10,12 +10,13 @@
 package utils
 
 import (
+	"math/rand"
 	"sync"
 	"testing"
 	"time"
 )
 
-func TestFunctionality(t *testing.T) {
+func TestSPSCFunctionality(t *testing.T) {
 	assert := newAsserter(t)
 
 	var z int
@@ -56,11 +57,105 @@ type myQ struct {
 	// time taken by consumer
 	cons time.Duration
 
-	// number of times q was full/empty, had seq errs
-	full, empty, errs uint64
+	// number of times q had seq errs
+	errs uint64
 
 	b  *Barrier
 	wg sync.WaitGroup
+}
+
+// TestSPSCWrapAround ensures the ring buffer indices cycle correctly
+// without crashing or losing data when they exceed the array size.
+func TestSPSCWrapAround(t *testing.T) {
+	assert := newAsserter(t)
+
+	// Small queue to force frequent wrapping
+	q := NewSPSCQ[int](2)
+	cycles := 100
+
+	for i := 0; i < cycles; i++ {
+		// Enqueue 1
+		ok := q.Enq(i)
+		assert(ok, "failed to enq at cycle %d", i)
+
+		// Dequeue 1
+		val, ok := q.Deq()
+		assert(ok, "failed to deq at cycle %d", i)
+		assert(val == i, "cycle %d: exp %d, got %d", i, i, val)
+	}
+}
+
+// TestSPSCZeroValue ensures that the queue handles the zero value of the type (0)
+// correctly and distinguishes it from 'empty'.
+func TestSPSCZeroValue(t *testing.T) {
+	assert := newAsserter(t)
+	q := NewSPSCQ[int](16)
+
+	// Case 1: Enqueue 0 explicitly
+	ok := q.Enq(0)
+	assert(ok, "failed to enq 0")
+
+	// Case 2: Dequeue 0
+	val, ok := q.Deq()
+	assert(ok, "should have received value 0, got empty")
+	assert(val == 0, "exp 0, got %d", val)
+
+	// Case 3: Queue should now be empty
+	_, ok = q.Deq()
+	assert(!ok, "queue should be empty after deq 0")
+}
+
+// TestSPSCTorture introduces random jitter (sleeps) to simulate real-world
+// unpredictable thread scheduling (GC pauses, context switches).
+func TestSPSCTorture(t *testing.T) {
+	// A smaller number of items, but with sleeps
+	const iters = 10_000
+	q := NewSPSCQ[int](128)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	// Producer with Jitter
+	go func() {
+		defer wg.Done()
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		for i := 0; i < iters; i++ {
+			for !q.Enq(i) {
+				// Busy wait, occasionally sleep
+				if r.Float32() < 0.01 { // 1% chance to sleep
+					time.Sleep(time.Microsecond)
+				}
+			}
+			// Occasional sleep after success too
+			if r.Float32() < 0.005 {
+				time.Sleep(time.Microsecond)
+			}
+		}
+	}()
+
+	// Consumer with Jitter
+	go func() {
+		defer wg.Done()
+		r := rand.New(rand.NewSource(time.Now().UnixNano() + 1))
+		for i := 0; i < iters; {
+			val, ok := q.Deq()
+			if !ok {
+				if r.Float32() < 0.01 {
+					time.Sleep(time.Microsecond)
+				}
+				continue
+			}
+
+			// Verification
+			if val != i {
+				t.Errorf("Torture fail: exp %d, got %d", i, val)
+				return
+			}
+			i++
+		}
+	}()
+
+	wg.Wait()
 }
 
 func newQ(n int) *myQ {
@@ -71,64 +166,48 @@ func newQ(n int) *myQ {
 	return myq
 }
 
-var qsizes = []int{128, 1024, 4096, 8192, 16384}
+var qsizes = []int{128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536}
 
-func TestConcurrency(t *testing.T) {
+func TestSPSCConcurrency(t *testing.T) {
 	enq := func(myq *myQ, n uint64) {
 		myq.b.Wait()
 
-		var v uint64 = 1
-		var full uint64
-		var tot time.Duration
+		var v uint64 = 0
 
 		q := myq.q
-		for n > 0 {
-			start := time.Now()
-			ok := q.Enq(v)
-			tot += time.Now().Sub(start)
-			if ok {
+		start := time.Now()
+		for v < n {
+			if q.Enq(v) {
 				v++
-			} else {
-				full++
 			}
-			n -= 1
 		}
 
-		myq.prod = tot
-		myq.full = full
+		myq.prod = time.Since(start)
 		myq.wg.Done()
 	}
 
 	deq := func(myq *myQ, n uint64) {
 		myq.b.Wait()
 
-		var v uint64 = 1
-		var err, empty uint64
-		var tot time.Duration
-
+		var v uint64 = 0
+		var err uint64
 		q := myq.q
-		for n > 0 {
-			start := time.Now()
-			z, ok := q.Deq()
-			tot += time.Now().Sub(start)
-			if ok {
+		start := time.Now()
+		for v < n {
+			if z, ok := q.Deq(); ok {
 				if v != z {
 					err++
 				}
 				v++
-			} else {
-				empty++
 			}
-			n -= 1
 		}
 
-		myq.cons = tot
-		myq.empty = empty
+		myq.cons = time.Since(start)
 		myq.errs = err
 		myq.wg.Done()
 	}
 
-	const iters uint64 = 10485760
+	const iters uint64 = 200 * 1048576
 	for _, qsize := range qsizes {
 		myq := newQ(qsize)
 
@@ -141,7 +220,7 @@ func TestConcurrency(t *testing.T) {
 
 		pc := float64(myq.prod) / float64(iters)
 		cc := float64(myq.cons) / float64(iters)
-		t.Logf("Q size %6d: %d items; P %4.2fns/item (full %d), C %4.2fns/item (empty %d, errs %d)\n",
-			qsize, iters, pc, myq.full, cc, myq.empty, myq.errs)
+		t.Logf("Q size %6d: %d items; P %4.2f ns/item, C %4.2f ns/item (errs %d)\n",
+			qsize, iters, pc, cc, myq.errs)
 	}
 }

@@ -19,10 +19,10 @@ import (
 // with capacity 'N', it will store N-1 elements.
 type SPSCQ[T any] struct {
 	rd atomic.Uint64
-	_   [7]uint64 // cache-line pad
+	_  [7]uint64 // cache-line pad
 
 	wr atomic.Uint64
-	_   [7]uint64 // cache-line pad
+	_  [7]uint64 // cache-line pad
 
 	rdc uint64    // read-index cached
 	_   [7]uint64 // cache-line pad
@@ -66,6 +66,8 @@ func newSPSCQ[T any](n int) *SPSCQ[T] {
 func (q *SPSCQ[T]) Flush() {
 	q.rd.Store(0)
 	q.wr.Store(0)
+	q.rdc = 0
+	q.wrc = 0
 }
 
 // Enq enqueues a new element. Returns true on success
