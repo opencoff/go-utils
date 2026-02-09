@@ -59,10 +59,19 @@ var orderedSizes = [...]struct {
 func ParseSize(s string) (uint64, error) {
 	var suff string
 
-	i := strings.LastIndexAny(s, "BkKMGTPE")
-	if i > 0 {
-		suff = s[i : i+1]
-		s = s[:i]
+	// find the last digit in the string
+	i := strings.LastIndexAny(s, "0123456789")
+	if i >= 0 {
+		suff = s[i+1:]
+		s = s[:i+1]
+		if len(suff) > 1 {
+			switch suff[1] {
+			case 'B', 'b':
+				suff = suff[:1]
+			default:
+				return 0, fmt.Errorf("size: unknown suffix '%s'", suff)
+			}
+		}
 	}
 
 	if s == "" {

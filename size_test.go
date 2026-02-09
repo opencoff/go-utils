@@ -18,6 +18,13 @@ var sizesTests = []sizeTest{
 	{"80G", 80 * _GB, false},
 	{"10T", 10 * _TB, false},
 
+	{"4kB", 4096, false},
+	{"10MB", 10 * 1048576, false},
+	{"80GB", 80 * _GB, false},
+	{"10TB", 10 * _TB, false},
+
+	{"10Tx", 0, true},
+
 	{"1048576E", 0, true},
 	{"4x", 0, true},
 	{"boo", 0, true},
