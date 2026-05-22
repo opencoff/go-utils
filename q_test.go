@@ -50,7 +50,7 @@ func TestBasic(t *testing.T) {
 
 	assert(q.IsEmpty(), "expected q to be empty")
 
-	z, v = q.Deq()
+	_, v = q.Deq()
 	assert(!v, "expected deq to fail")
 }
 

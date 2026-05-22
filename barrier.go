@@ -30,6 +30,7 @@ func (b *Barrier) Wait() {
 		return
 	}
 	for range b.ch {
+		// drain the channel
 	}
 }
 

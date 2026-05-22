@@ -24,7 +24,7 @@ func NewUUID() *UUID {
 
 	b := u.b[:]
 
-	rand.Read(b)
+	_, _ = rand.Read(b)
 
 	b[6] = 0x4f & (b[6] | 0x40)
 	b[8] = 0xBf & (b[8] | 0x80)

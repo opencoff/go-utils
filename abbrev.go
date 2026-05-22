@@ -29,9 +29,9 @@ func Abbrev(words []string) map[string]string {
 	table := make(map[string]string)
 
 	for _, w := range words {
-		for n := len(w) - 1; n > 0; n -= 1 {
+		for n := len(w) - 1; n > 0; n-- {
 			ab := w[:n]
-			seen[ab] += 1
+			seen[ab]++
 
 			switch seen[ab] {
 			case 1:

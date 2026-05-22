@@ -47,13 +47,13 @@ func NewSPSCQFrom[T any](v []T) *SPSCQ[T] {
 	q := newSPSCQ[T](len(v))
 
 	n := copy(q.q[1:], v)
-	q.wr.Store(uint64(n))
+	q.wr.Store(uint64(n)) //#nosec G115 -- 64 bit platforms
 	return q
 }
 
 func newSPSCQ[T any](n int) *SPSCQ[T] {
 	q := &SPSCQ[T]{}
-	z := nextpow2(uint64(n))
+	z := nextpow2(uint64(n)) //#nosec G115 -- 64-bit platforms no overflow
 
 	q.mask = z - 1
 	q.rd.Store(0)

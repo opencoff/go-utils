@@ -1,10 +1,7 @@
 module github.com/opencoff/go-utils
 
-go 1.25.5
+go 1.26.3
 
-require golang.org/x/crypto v0.48.0
+require golang.org/x/term v0.43.0
 
-require (
-	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/term v0.40.0 // indirect
-)
+require golang.org/x/sys v0.44.0 // indirect

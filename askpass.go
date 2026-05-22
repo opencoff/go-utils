@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"syscall"
 
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 // Askpass prompts user for an interactive password.
@@ -25,7 +25,7 @@ func Askpass(prompt string, verify bool) (string, error) {
 
 	for i := 0; i < 2; i++ {
 		fmt.Printf("%s: ", prompt)
-		pw1, err := terminal.ReadPassword(int(syscall.Stdin))
+		pw1, err := term.ReadPassword(int(syscall.Stdin))
 		fmt.Printf("\n")
 		if err != nil {
 			return "", err
@@ -35,7 +35,7 @@ func Askpass(prompt string, verify bool) (string, error) {
 		}
 
 		fmt.Printf("%s again: ", prompt)
-		pw2, err := terminal.ReadPassword(int(syscall.Stdin))
+		pw2, err := term.ReadPassword(int(syscall.Stdin))
 		fmt.Printf("\n")
 		if err != nil {
 			return "", err
@@ -50,7 +50,7 @@ func Askpass(prompt string, verify bool) (string, error) {
 		fmt.Printf("** password mismatch; try again ..\n")
 	}
 
-	return "", fmt.Errorf("Too many tries getting password")
+	return "", fmt.Errorf("too many tries getting password")
 }
 
 // vim: ft=go:sw=8:ts=8:noexpandtab:tw=98:

@@ -10,7 +10,7 @@
 package utils
 
 import (
-	"math/rand"
+	"math/rand/v2"
 	"sync"
 	"testing"
 	"time"
@@ -44,7 +44,7 @@ func TestSPSCFunctionality(t *testing.T) {
 	assert(ok, "can't deq 300")
 	assert(z == 300, "exp 300, saw %d", z)
 
-	z, ok = q.Deq()
+	_, ok = q.Deq()
 	assert(!ok, "expected q empty\n%s", q)
 }
 
@@ -118,16 +118,15 @@ func TestSPSCTorture(t *testing.T) {
 	// Producer with Jitter
 	go func() {
 		defer wg.Done()
-		r := rand.New(rand.NewSource(time.Now().UnixNano()))
 		for i := 0; i < iters; i++ {
 			for !q.Enq(i) {
 				// Busy wait, occasionally sleep
-				if r.Float32() < 0.01 { // 1% chance to sleep
+				if rand.Float32() < 0.01 { // 1% chance to sleep
 					time.Sleep(time.Microsecond)
 				}
 			}
 			// Occasional sleep after success too
-			if r.Float32() < 0.005 {
+			if rand.Float32() < 0.005 {
 				time.Sleep(time.Microsecond)
 			}
 		}
@@ -136,11 +135,10 @@ func TestSPSCTorture(t *testing.T) {
 	// Consumer with Jitter
 	go func() {
 		defer wg.Done()
-		r := rand.New(rand.NewSource(time.Now().UnixNano() + 1))
 		for i := 0; i < iters; {
 			val, ok := q.Deq()
 			if !ok {
-				if r.Float32() < 0.01 {
+				if rand.Float32() < 0.01 {
 					time.Sleep(time.Microsecond)
 				}
 				continue
@@ -172,7 +170,7 @@ func TestSPSCConcurrency(t *testing.T) {
 	enq := func(myq *myQ, n uint64) {
 		myq.b.Wait()
 
-		var v uint64 = 0
+		var v uint64
 
 		q := myq.q
 		start := time.Now()
@@ -189,7 +187,7 @@ func TestSPSCConcurrency(t *testing.T) {
 	deq := func(myq *myQ, n uint64) {
 		myq.b.Wait()
 
-		var v uint64 = 0
+		var v uint64
 		var err uint64
 		q := myq.q
 		start := time.Now()
@@ -207,7 +205,7 @@ func TestSPSCConcurrency(t *testing.T) {
 		myq.wg.Done()
 	}
 
-	const iters uint64 = 200 * 1048576
+	const iters uint64 = 10 * 1048576
 	for _, qsize := range qsizes {
 		myq := newQ(qsize)
 

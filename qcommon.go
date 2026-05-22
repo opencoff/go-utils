@@ -25,13 +25,14 @@ func qlen(rd, wr, mask uint64) int {
 	case rd == wr:
 		return 0
 	case rd < wr:
-		return int(wr - rd)
+		return int(wr - rd) //#nosec G115 ; condition check prevents overflow
 	default: // wrapped around
-		return int((mask + 1) - rd + wr)
+		z := (mask + 1) - rd
+		return int(z + wr) //#nosec G115 ; condition check prevents overflow
 	}
 }
 
-func qempty(rd, wr, mask uint64) bool {
+func qempty(rd, wr, _ uint64) bool {
 	return rd == wr
 }
 
@@ -44,7 +45,7 @@ func qrepr(rd, wr, mask uint64) string {
 	empty := qempty(rd, wr, mask)
 	n := qlen(rd, wr, mask)
 
-	var p string = ""
+	var p string
 	if full {
 		p = "[FULL] "
 	} else if empty {

@@ -48,7 +48,7 @@ func NewQFrom[T any](v []T) *Q[T] {
 }
 
 func (q *Q[T]) init(n int) {
-	z := nextpow2(uint64(n))
+	z := nextpow2(uint64(n)) //#nosec G115 -- 64 bit platforms
 
 	q.rd, q.wr = 0, 0
 	q.mask = z - 1
@@ -58,7 +58,7 @@ func (q *Q[T]) init(n int) {
 func (q *Q[T]) init2(v []T) {
 	q.init(len(v))
 	n := copy(q.q[1:], v)
-	q.wr = uint64(n)
+	q.wr = uint64(n) //#nosec G115 -- 64 bit platforms
 }
 
 // Empty the queue
@@ -209,7 +209,7 @@ func (q *SyncQ[T]) Size() int {
 // String prints a string representation of the queue
 func (q *SyncQ[T]) String() string {
 	q.Lock()
-	s := q.Q.repr("SyncQ")
+	s := q.repr("SyncQ")
 	q.Unlock()
 	return s
 }

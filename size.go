@@ -109,10 +109,10 @@ func HumanizeSize(sz uint64) string {
 		m := v.mult
 		if b := sz % m; b > 0 {
 			f := float64(sz) / float64(m)
-			return fmt.Sprintf("%.02f %s", f, v.suff)
+			return fmt.Sprintf("%.02f%s", f, v.suff)
 		}
-		return fmt.Sprintf("%d %s", sz/m, v.suff)
+		return fmt.Sprintf("%d%s", sz/m, v.suff)
 	}
 
-	return fmt.Sprintf("%d B", sz)
+	return fmt.Sprintf("%dB", sz)
 }
